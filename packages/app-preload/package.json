@@ -4,7 +4,7 @@
   "private": true,
   "main": "./dist/index.js",
   "scripts": {
-    "build": "tsup src/index.ts --format cjs --out-dir dist --no-splitting --external electron"
+    "build": "tsup"
   },
   "dependencies": {
     "@vibedepot/shared": "workspace:*"

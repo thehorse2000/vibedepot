@@ -35,4 +35,9 @@ export const IPC = {
   APP_LIST: 'app:list',
   APP_LAUNCH: 'app:launch',
   APP_CLOSE: 'app:close',
+
+  // Store (shell renderer <-> main)
+  STORE_FETCH_REGISTRY: 'store:fetchRegistry',
+  STORE_INSTALL_APP: 'store:installApp',
+  STORE_UNINSTALL_APP: 'store:uninstallApp',
 } as const;

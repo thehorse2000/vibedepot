@@ -22,6 +22,28 @@ const shellAPI = {
       ipcRenderer.invoke(IPC.APP_LAUNCH, { appId }),
     close: (appId: string) =>
       ipcRenderer.invoke(IPC.APP_CLOSE, { appId }),
+    onAppClosed: (callback: (appId: string) => void) => {
+      const handler = (_event: unknown, appId: string) => callback(appId);
+      ipcRenderer.on('app:closed', handler);
+      return () => ipcRenderer.removeListener('app:closed', handler);
+    },
+  },
+  store: {
+    fetchRegistry: () => ipcRenderer.invoke(IPC.STORE_FETCH_REGISTRY),
+    installApp: (
+      appId: string,
+      bundleUrl: string,
+      expectedChecksum: string,
+      version: string
+    ) =>
+      ipcRenderer.invoke(IPC.STORE_INSTALL_APP, {
+        appId,
+        bundleUrl,
+        expectedChecksum,
+        version,
+      }),
+    uninstallApp: (appId: string, deleteData?: boolean) =>
+      ipcRenderer.invoke(IPC.STORE_UNINSTALL_APP, { appId, deleteData }),
   },
   shell: {
     getVersion: () => ipcRenderer.invoke(IPC.SHELL_GET_VERSION),

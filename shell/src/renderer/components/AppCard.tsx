@@ -4,21 +4,34 @@ import type { AppManifest } from '@vibedepot/shared';
 interface AppCardProps {
   app: AppManifest;
   isRunning: boolean;
+  hasUpdate?: boolean;
+  registryVersion?: string;
   onLaunch: () => void;
   onClose: () => void;
+  onUninstall?: () => void;
 }
 
 export function AppCard({
   app,
   isRunning,
+  hasUpdate,
+  registryVersion,
   onLaunch,
   onClose,
+  onUninstall,
 }: AppCardProps): React.ReactElement {
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
       <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-semibold text-lg">{app.name}</h3>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-lg">{app.name}</h3>
+            {hasUpdate && (
+              <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
+                Update: v{registryVersion}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {app.description}
           </p>
@@ -31,7 +44,7 @@ export function AppCard({
             </span>
           </div>
         </div>
-        <div>
+        <div className="flex gap-2 flex-shrink-0 ml-4">
           {isRunning ? (
             <button
               onClick={onClose}
@@ -45,6 +58,14 @@ export function AppCard({
               className="px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
             >
               Launch
+            </button>
+          )}
+          {onUninstall && !isRunning && (
+            <button
+              onClick={onUninstall}
+              className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-md transition-colors"
+            >
+              Uninstall
             </button>
           )}
         </div>

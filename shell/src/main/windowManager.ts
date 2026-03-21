@@ -1,24 +1,20 @@
-import { BrowserView, BrowserWindow, nativeTheme } from 'electron';
+import { BrowserWindow, nativeTheme } from 'electron';
 import { join } from 'path';
 import type { AppManifest } from '@vibedepot/shared';
 import { getMainWindow } from './index';
 
 interface RunningApp {
-  view: BrowserView;
+  window: BrowserWindow;
   manifest: AppManifest;
 }
 
 const runningApps = new Map<string, RunningApp>();
-const SIDEBAR_WIDTH = 240;
 
 export function launchApp(
   manifest: AppManifest,
   appPath: string
 ): void {
-  const mainWindow = getMainWindow();
-  if (!mainWindow) return;
-
-  // Don't launch if already running
+  // Don't launch if already running — focus instead
   if (runningApps.has(manifest.id)) {
     showApp(manifest.id);
     return;
@@ -36,7 +32,12 @@ export function launchApp(
     );
   }
 
-  const view = new BrowserView({
+  const appWindow = new BrowserWindow({
+    width: 900,
+    height: 700,
+    minWidth: 480,
+    minHeight: 400,
+    title: manifest.name,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -46,40 +47,37 @@ export function launchApp(
     },
   });
 
-  mainWindow.addBrowserView(view);
-  const bounds = mainWindow.getContentBounds();
-  view.setBounds({
-    x: SIDEBAR_WIDTH,
-    y: 0,
-    width: bounds.width - SIDEBAR_WIDTH,
-    height: bounds.height,
-  });
-  view.setAutoResize({ width: true, height: true });
-
   const entryPath = join(appPath, manifest.entry);
-  view.webContents.loadFile(entryPath);
+  appWindow.loadFile(entryPath);
 
-  runningApps.set(manifest.id, { view, manifest });
+  // Clean up and notify shell renderer when the app window closes
+  appWindow.on('closed', () => {
+    runningApps.delete(manifest.id);
+    const main = getMainWindow();
+    if (main && !main.isDestroyed()) {
+      main.webContents.send('app:closed', manifest.id);
+    }
+  });
+
+  runningApps.set(manifest.id, { window: appWindow, manifest });
 }
 
 export function closeApp(appId: string): void {
-  const mainWindow = getMainWindow();
   const running = runningApps.get(appId);
-  if (!running || !mainWindow) return;
+  if (!running) return;
 
-  mainWindow.removeBrowserView(running.view);
-  running.view.webContents.close();
-  runningApps.delete(appId);
+  running.window.close();
+  // 'closed' handler above removes from map
 }
 
 export function showApp(appId: string): void {
-  const mainWindow = getMainWindow();
   const running = runningApps.get(appId);
-  if (!running || !mainWindow) return;
+  if (!running) return;
 
-  // Bring to top by removing and re-adding
-  mainWindow.removeBrowserView(running.view);
-  mainWindow.addBrowserView(running.view);
+  if (running.window.isMinimized()) {
+    running.window.restore();
+  }
+  running.window.focus();
 }
 
 export function getRunningAppIds(): string[] {
@@ -90,7 +88,7 @@ export function getAppIdFromWebContentsId(
   webContentsId: number
 ): string | null {
   for (const [appId, running] of runningApps) {
-    if (running.view.webContents.id === webContentsId) {
+    if (running.window.webContents.id === webContentsId) {
       return appId;
     }
   }

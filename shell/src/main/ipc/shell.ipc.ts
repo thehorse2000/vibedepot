@@ -6,14 +6,23 @@ import {
   ShellSetTitleSchema,
   AppLaunchSchema,
   AppCloseSchema,
+  StoreInstallSchema,
+  StoreUninstallSchema,
 } from '@vibedepot/shared';
 import { getAppIdFromEvent } from './register';
-import { getInstalledApp, getInstalledApps, loadHardcodedApps } from '../appManager';
+import {
+  getInstalledApp,
+  getInstalledApps,
+  loadInstalledApps,
+  installApp,
+  uninstallApp,
+} from '../appManager';
 import { launchApp, closeApp, getSystemTheme } from '../windowManager';
+import { fetchRegistry } from '../registryClient';
 
 export function registerShellIPC(): void {
-  // Load hardcoded apps on registration
-  loadHardcodedApps();
+  // Load installed apps from disk
+  loadInstalledApps();
 
   ipcMain.handle(IPC.SHELL_GET_APP_INFO, async (event) => {
     const appId = getAppIdFromEvent(event.sender);
@@ -63,5 +72,22 @@ export function registerShellIPC(): void {
   ipcMain.handle(IPC.APP_CLOSE, async (_event, payload) => {
     const { appId } = AppCloseSchema.parse(payload);
     closeApp(appId);
+  });
+
+  // Store operations
+  ipcMain.handle(IPC.STORE_FETCH_REGISTRY, async () => {
+    return await fetchRegistry();
+  });
+
+  ipcMain.handle(IPC.STORE_INSTALL_APP, async (_event, payload) => {
+    const { appId, bundleUrl, expectedChecksum, version } =
+      StoreInstallSchema.parse(payload);
+    const manifest = await installApp(appId, bundleUrl, expectedChecksum, version);
+    return manifest;
+  });
+
+  ipcMain.handle(IPC.STORE_UNINSTALL_APP, async (_event, payload) => {
+    const { appId, deleteData } = StoreUninstallSchema.parse(payload);
+    uninstallApp(appId, deleteData);
   });
 }

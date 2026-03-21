@@ -19,6 +19,17 @@ declare global {
         list: () => Promise<Array<import('@vibedepot/shared').AppManifest>>;
         launch: (appId: string) => Promise<void>;
         close: (appId: string) => Promise<void>;
+        onAppClosed: (callback: (appId: string) => void) => () => void;
+      };
+      store: {
+        fetchRegistry: () => Promise<Array<import('@vibedepot/shared').RegistryEntry>>;
+        installApp: (
+          appId: string,
+          bundleUrl: string,
+          expectedChecksum: string,
+          version: string
+        ) => Promise<import('@vibedepot/shared').AppManifest>;
+        uninstallApp: (appId: string, deleteData?: boolean) => Promise<void>;
       };
       shell: {
         getVersion: () => Promise<string>;
@@ -31,10 +42,18 @@ declare global {
 export function App(): React.ReactElement {
   const activePage = useAppStore((s) => s.activePage);
   const setInstalledApps = useAppStore((s) => s.setInstalledApps);
+  const setAppRunning = useAppStore((s) => s.setAppRunning);
 
   useEffect(() => {
     window.shellAPI.apps.list().then(setInstalledApps).catch(console.error);
   }, [setInstalledApps]);
+
+  // Listen for app windows being closed externally
+  useEffect(() => {
+    return window.shellAPI.apps.onAppClosed((appId) => {
+      setAppRunning(appId, false);
+    });
+  }, [setAppRunning]);
 
   return (
     <div className="flex h-screen">

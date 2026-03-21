@@ -67,3 +67,16 @@ export const AppLaunchSchema = z.object({
 export const AppCloseSchema = z.object({
   appId: z.string(),
 });
+
+// Store schemas
+export const StoreInstallSchema = z.object({
+  appId: z.string(),
+  bundleUrl: z.string().url(),
+  expectedChecksum: z.string(),
+  version: z.string(),
+});
+
+export const StoreUninstallSchema = z.object({
+  appId: z.string(),
+  deleteData: z.boolean().optional().default(false),
+});
