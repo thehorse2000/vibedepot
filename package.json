@@ -1,0 +1,21 @@
+{
+  "name": "vibedepot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-Source Desktop App Store for AI-Native Applications",
+  "scripts": {
+    "dev": "pnpm --filter @vibedepot/shell dev",
+    "build": "pnpm --filter @vibedepot/app-preload build && pnpm --filter @vibedepot/shell build",
+    "build:preload": "pnpm --filter @vibedepot/app-preload build",
+    "lint": "eslint . --ext .ts,.tsx"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron", "esbuild", "keytar"]
+  }
+}

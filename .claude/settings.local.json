@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install:*)",
+      "Bash(pnpm config:*)",
+      "Bash(pnpm dev:*)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx|json|js\\)$\")",
+      "Bash(npm run:*)"
+    ]
+  }
+}

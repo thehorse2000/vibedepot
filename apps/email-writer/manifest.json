@@ -1,0 +1,17 @@
+{
+  "id": "email-writer",
+  "name": "Email Writer",
+  "version": "0.1.0",
+  "description": "AI-powered email drafting assistant. Describe your email and get a polished draft instantly.",
+  "author": "vibedepot",
+  "license": "MIT",
+  "entry": "index.html",
+  "category": "productivity",
+  "keywords": ["email", "writing", "ai", "drafting"],
+  "models": {
+    "required": true,
+    "providers": ["anthropic", "openai", "gemini"],
+    "default": "anthropic"
+  },
+  "permissions": ["ai", "storage.kv"]
+}

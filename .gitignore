@@ -1,0 +1,13 @@
+node_modules/
+dist/
+out/
+*.db
+*.sqlite
+.env
+.env.*
+.DS_Store
+*.tsbuildinfo
+*.docx
+registry/
+local-plan/
+local-docs/
