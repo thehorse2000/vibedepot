@@ -10,6 +10,8 @@ interface AppStoreState {
   // Installed apps
   installedApps: AppManifest[];
   setInstalledApps: (apps: AppManifest[]) => void;
+  addInstalledApp: (app: AppManifest) => void;
+  removeInstalledApp: (appId: string) => void;
 
   // Running apps
   runningAppIds: Set<string>;
@@ -34,6 +36,14 @@ export const useAppStore = create<AppStoreState>((set) => ({
 
   installedApps: [],
   setInstalledApps: (apps) => set({ installedApps: apps }),
+  addInstalledApp: (app) =>
+    set((state) => ({
+      installedApps: [...state.installedApps.filter((a) => a.id !== app.id), app],
+    })),
+  removeInstalledApp: (appId) =>
+    set((state) => ({
+      installedApps: state.installedApps.filter((a) => a.id !== appId),
+    })),
 
   runningAppIds: new Set(),
   setAppRunning: (appId, running) =>

@@ -1,5 +1,9 @@
 import React from 'react';
 import type { AppManifest } from '@vibedepot/shared';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Play, Square, Trash2, User, RefreshCw, Layers } from 'lucide-react';
 
 interface AppCardProps {
   app: AppManifest;
@@ -25,68 +29,84 @@ export function AppCard({
   onRemove,
 }: AppCardProps): React.ReactElement {
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-lg">{app.name}</h3>
-            {sideloaded && (
-              <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-1.5 py-0.5 rounded font-medium">
-                DEV
-              </span>
-            )}
-            {hasUpdate && (
-              <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
-                Update: v{registryVersion}
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {app.description}
-          </p>
-          <div className="flex gap-2 mt-2">
-            <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
-              v{app.version}
-            </span>
-            <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
-              {app.author}
-            </span>
-          </div>
+    <Card className={`group relative flex items-center p-4 gap-4 border border-border bg-card hover:border-primary/50 transition-all duration-300 ${isRunning ? 'ring-1 ring-primary/50' : ''}`}>
+      <div className={`size-12 rounded-xl flex items-center justify-center text-primary-foreground font-bold text-xl ${isRunning ? 'bg-primary' : 'bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary'}`}>
+        {app.name.charAt(0).toUpperCase()}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className="font-bold text-base leading-none truncate">{app.name}</h3>
+          {sideloaded && (
+            <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-indigo-500/50 text-indigo-500 bg-indigo-500/5 uppercase font-bold tracking-wider">
+              <Layers className="size-2.5 mr-1" />
+              Dev
+            </Badge>
+          )}
+          {hasUpdate && (
+            <Badge variant="secondary" className="text-[10px] h-4 px-1.5 bg-amber-500/10 text-amber-500 border-amber-500/20 uppercase font-bold tracking-wider">
+              <RefreshCw className="size-2.5 mr-1" />
+              Update v{registryVersion}
+            </Badge>
+          )}
         </div>
-        <div className="flex gap-2 flex-shrink-0 ml-4">
-          {isRunning ? (
-            <button
-              onClick={onClose}
-              className="px-3 py-1.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
-            >
-              Close
-            </button>
-          ) : (
-            <button
-              onClick={onLaunch}
-              className="px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
-            >
-              Launch
-            </button>
-          )}
-          {sideloaded && onRemove && !isRunning && (
-            <button
-              onClick={onRemove}
-              className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-md transition-colors"
-            >
-              Remove
-            </button>
-          )}
-          {!sideloaded && onUninstall && !isRunning && (
-            <button
-              onClick={onUninstall}
-              className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-md transition-colors"
-            >
-              Uninstall
-            </button>
-          )}
+        <p className="text-xs text-muted-foreground mt-1.5 line-clamp-1 leading-relaxed max-w-md">
+          {app.description}
+        </p>
+        <div className="flex items-center gap-3 mt-2">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <User className="size-3" />
+            <span>{app.author}</span>
+          </div>
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="bg-muted px-1.5 py-0.5 rounded font-mono">v{app.version}</span>
+          </div>
         </div>
       </div>
-    </div>
+
+      <div className="flex items-center gap-2">
+        {isRunning ? (
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={onClose}
+            className="h-8 px-3 font-semibold shadow-sm"
+          >
+            <Square className="size-3 mr-1.5 fill-current" />
+            Stop
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            onClick={onLaunch}
+            className="h-8 px-3 font-semibold shadow-sm"
+          >
+            <Play className="size-3 mr-1.5 fill-current" />
+            Launch
+          </Button>
+        )}
+
+        {(sideloaded && onRemove && !isRunning) && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onRemove}
+            className="size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        )}
+        {(!sideloaded && onUninstall && !isRunning) && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onUninstall}
+            className="size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        )}
+      </div>
+    </Card>
   );
 }

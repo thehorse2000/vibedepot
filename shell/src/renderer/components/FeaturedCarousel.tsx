@@ -1,127 +1,98 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import type { RegistryEntry } from '@vibedepot/shared';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, ArrowRight } from "lucide-react";
 
 interface FeaturedCarouselProps {
-  entries: RegistryEntry[];
-  installedIds: Set<string>;
-  installingAppIds: Set<string>;
-  onInstall: (entry: RegistryEntry) => void;
-  onAppClick: (entry: RegistryEntry) => void;
+  apps: RegistryEntry[];
+  onSelect: (app: RegistryEntry) => void;
 }
 
-export function FeaturedCarousel({
-  entries,
-  installedIds,
-  installingAppIds,
-  onInstall,
-  onAppClick,
-}: FeaturedCarouselProps): React.ReactElement | null {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  if (entries.length === 0) return null;
-
-  const scroll = (direction: 'left' | 'right') => {
-    if (!scrollRef.current) return;
-    const amount = 320;
-    scrollRef.current.scrollBy({
-      left: direction === 'left' ? -amount : amount,
-      behavior: 'smooth',
-    });
-  };
-
+export function FeaturedCarousel({ apps, onSelect }: FeaturedCarouselProps): React.ReactElement {
   return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold">Featured Apps</h3>
-        <div className="flex gap-1">
-          <button
-            onClick={() => scroll('left')}
-            className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm"
-            aria-label="Scroll left"
-          >
-            &larr;
-          </button>
-          <button
-            onClick={() => scroll('right')}
-            className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm"
-            aria-label="Scroll right"
-          >
-            &rarr;
-          </button>
-        </div>
-      </div>
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
-        style={{ scrollbarWidth: 'none' }}
+    <div className="relative w-full group">
+      <Carousel
+        opts={{
+          align: "start",
+          loop: true,
+        }}
+        className="w-full"
       >
-        {entries.map((entry) => {
-          const isInstalled = installedIds.has(entry.id);
-          const isInstalling = installingAppIds.has(entry.id);
-
-          return (
-            <div
-              key={entry.id}
-              onClick={() => onAppClick(entry)}
-              className="flex-shrink-0 w-72 border border-blue-200 dark:border-blue-800 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
-            >
-              {entry.thumbnail ? (
-                <div className="h-32 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        <CarouselContent className="-ml-4">
+          {apps.map((app) => (
+            <CarouselItem key={app.id} className="pl-4 md:basis-1/2 lg:basis-1/2">
+              <div 
+                className="relative h-[280px] w-full rounded-3xl overflow-hidden cursor-pointer group/item shadow-xl transition-all duration-500 hover:shadow-primary/20"
+                onClick={() => onSelect(app)}
+              >
+                {/* Background Image */}
+                {app.thumbnail ? (
                   <img
-                    src={entry.thumbnail}
-                    alt={entry.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
+                    src={app.thumbnail}
+                    alt={app.name}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110"
                   />
-                </div>
-              ) : (
-                <div className="h-32 bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-800/40 dark:to-indigo-800/40 flex items-center justify-center">
-                  <span className="text-4xl opacity-50">
-                    {entry.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
-              <div className="p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-semibold text-sm truncate">
-                      {entry.name}
-                    </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {entry.author}
-                    </p>
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary to-indigo-900" />
+                )}
+                
+                {/* Overlay Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                
+                {/* Content */}
+                <div className="absolute inset-0 p-8 flex flex-col justify-end gap-3 translate-y-2 group-hover/item:translate-y-0 transition-transform duration-500">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-primary hover:bg-primary text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border-none">
+                      Featured
+                    </Badge>
+                    {app.category && (
+                      <Badge variant="outline" className="text-white border-white/30 text-[10px] uppercase tracking-wider px-2 py-0.5 backdrop-blur-md">
+                        {app.category}
+                      </Badge>
+                    )}
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!isInstalled && !isInstalling) onInstall(entry);
-                    }}
-                    disabled={isInstalled || isInstalling}
-                    className={`flex-shrink-0 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                      isInstalled
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-default'
-                        : isInstalling
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 cursor-wait'
-                          : 'bg-blue-500 hover:bg-blue-600 text-white'
-                    }`}
-                  >
-                    {isInstalled
-                      ? 'Installed'
-                      : isInstalling
-                        ? 'Installing...'
-                        : 'Install'}
-                  </button>
+                  
+                  <h3 className="text-3xl font-black text-white leading-tight">
+                    {app.name}
+                  </h3>
+                  
+                  <p className="text-sm text-white/70 line-clamp-2 max-w-sm font-medium">
+                    {app.description}
+                  </p>
+                  
+                  <div className="flex items-center gap-4 mt-2">
+                    <Button 
+                      size="sm" 
+                      className="rounded-full px-6 font-bold bg-white text-black hover:bg-white/90 transition-colors"
+                    >
+                      Details
+                      <ArrowRight className="size-4 ml-2" />
+                    </Button>
+                    <span className="text-xs text-white/50 font-mono">v{app.version}</span>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1.5 line-clamp-2">
-                  {entry.description}
-                </p>
+                
+                {/* Decorative Sparkle */}
+                <div className="absolute top-6 right-6 p-3 rounded-full bg-white/10 backdrop-blur-md opacity-0 group-hover/item:opacity-100 transition-opacity duration-500">
+                  <Sparkles className="size-5 text-white animate-pulse" />
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <div className="absolute -top-16 right-12 flex gap-2">
+          <CarouselPrevious className="static translate-y-0 size-10 border-border bg-card hover:bg-accent text-foreground shadow-sm" />
+          <CarouselNext className="static translate-y-0 size-10 border-border bg-card hover:bg-accent text-foreground shadow-sm" />
+        </div>
+      </Carousel>
     </div>
   );
 }

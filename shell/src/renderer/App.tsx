@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import { useSettingsStore } from './store/useSettingsStore';
-import { Sidebar } from './components/Sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { AppSidebar } from './components/AppSidebar';
 import { Store } from './pages/Store';
 import { Library } from './pages/Library';
 import { Settings } from './pages/Settings';
 import { Publish } from './pages/Publish';
+import { Toaster } from '@/components/ui/sonner';
 
 declare global {
   interface Window {
@@ -99,14 +101,19 @@ export function App(): React.ReactElement {
   }, [setAppRunning]);
 
   return (
-    <div className="flex h-screen">
-      <Sidebar />
-      <main className="flex-1 overflow-auto p-6">
-        {activePage === 'store' && <Store />}
-        {activePage === 'library' && <Library />}
-        {activePage === 'settings' && <Settings />}
-        {activePage === 'publish' && <Publish />}
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="flex h-screen w-full bg-background">
+        <AppSidebar />
+        <SidebarInset className="flex flex-col flex-1 overflow-hidden">
+          <main className="flex-1 overflow-y-auto">
+            {activePage === 'store' && <Store />}
+            {activePage === 'library' && <Library />}
+            {activePage === 'settings' && <Settings />}
+            {activePage === 'publish' && <Publish />}
+          </main>
+        </SidebarInset>
+        <Toaster />
+      </div>
+    </SidebarProvider>
   );
 }

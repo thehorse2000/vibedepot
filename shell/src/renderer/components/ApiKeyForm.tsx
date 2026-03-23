@@ -1,94 +1,148 @@
 import React, { useState, useEffect } from 'react';
-import { useSettingsStore } from '../store/useSettingsStore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Key, 
+  Eye, 
+  EyeOff, 
+  CheckCircle2, 
+  AlertCircle, 
+  Trash2,
+  Lock
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ApiKeyFormProps {
   provider: string;
-  displayName: string;
+  label: string;
 }
 
-export function ApiKeyForm({
-  provider,
-  displayName,
-}: ApiKeyFormProps): React.ReactElement {
+export function ApiKeyForm({ provider, label }: ApiKeyFormProps): React.ReactElement {
   const [key, setKey] = useState('');
-  const [saving, setSaving] = useState(false);
-  const providerStatus = useSettingsStore((s) => s.providers[provider]);
-  const setProviderStatus = useSettingsStore((s) => s.setProviderStatus);
+  const [exists, setExists] = useState(false);
+  const [masked, setMasked] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
-    window.shellAPI.keys
-      .get(provider)
-      .then((result) => {
-        setProviderStatus(provider, {
-          hasKey: result.exists,
-          masked: result.masked,
-        });
-      })
-      .catch(console.error);
-  }, [provider, setProviderStatus]);
+    window.shellAPI.keys.get(provider).then((res) => {
+      setExists(res.exists);
+      setMasked(res.masked);
+    }).catch(console.error);
+  }, [provider]);
 
-  const handleSave = async (): Promise<void> => {
-    if (!key.trim()) return;
-    setSaving(true);
+  const handleSave = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!key) return;
+
+    setLoading(true);
     try {
-      await window.shellAPI.keys.set(provider, key.trim());
-      const result = await window.shellAPI.keys.get(provider);
-      setProviderStatus(provider, {
-        hasKey: result.exists,
-        masked: result.masked,
-      });
+      await window.shellAPI.keys.set(provider, key);
+      const res = await window.shellAPI.keys.get(provider);
+      setExists(res.exists);
+      setMasked(res.masked);
       setKey('');
+      setShowKey(false);
+      toast.success(`${label} API key saved successfully`);
     } catch (err) {
       console.error('Failed to save key:', err);
+      toast.error(`Failed to save key: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
   const handleDelete = async (): Promise<void> => {
+    if (!confirm(`Are you sure you want to delete your ${label} API key?`)) return;
+
     try {
       await window.shellAPI.keys.delete(provider);
-      setProviderStatus(provider, { hasKey: false, masked: null });
+      setExists(false);
+      setMasked(null);
+      toast.info(`${label} API key removed`);
     } catch (err) {
       console.error('Failed to delete key:', err);
+      toast.error(`Failed to delete key: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
-      <h3 className="font-medium text-base mb-3">{displayName}</h3>
-      {providerStatus?.hasKey ? (
-        <div className="flex items-center justify-between">
-          <code className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-            {providerStatus.masked}
-          </code>
-          <button
-            onClick={handleDelete}
-            className="px-3 py-1.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
-          >
-            Remove
-          </button>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`p-2 rounded-lg ${exists ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+            <Lock className="size-4" />
+          </div>
+          <Label className="text-lg font-bold">{label}</Label>
         </div>
-      ) : (
-        <div className="flex gap-2">
-          <input
-            type="password"
-            value={key}
+        {exists && (
+          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-2 py-0.5 flex gap-1.5 items-center">
+            <CheckCircle2 className="size-3" />
+            Active
+          </Badge>
+        )}
+      </div>
+
+      <form onSubmit={handleSave} className="flex flex-col gap-3">
+        <div className="relative group">
+          <Input
+            type={showKey ? 'text' : 'password'}
+            value={exists && !key ? masked || '' : key}
             onChange={(e) => setKey(e.target.value)}
-            placeholder={`Enter ${displayName} API key`}
-            className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSave();
-            }}
+            placeholder={exists ? '••••••••••••••••' : `Enter your ${label} API key`}
+            disabled={loading || (exists && !key && !showKey)}
+            className={`pr-10 h-11 transition-all ${exists && !key ? 'bg-muted/50 border-transparent text-muted-foreground font-mono' : 'bg-card border-border shadow-sm'}`}
           />
           <button
-            onClick={handleSave}
-            disabled={saving || !key.trim()}
-            className="px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded-md transition-colors"
+            type="button"
+            onClick={() => setShowKey(!showKey)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+            disabled={loading || (exists && !key)}
           >
-            {saving ? 'Saving...' : 'Save'}
+            {showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
+
+        <div className="flex gap-2">
+          {!exists || key ? (
+            <Button 
+              type="submit" 
+              disabled={loading || !key} 
+              className="flex-1 font-bold h-10 shadow-sm"
+            >
+              {loading ? 'Saving...' : 'Save API Key'}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setKey('')}
+              className="flex-1 font-bold h-10 border-dashed"
+            >
+              Update Key
+            </Button>
+          )}
+
+          {exists && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleDelete}
+              className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          )}
+        </div>
+      </form>
+      {!exists && (
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 px-1">
+          <AlertCircle className="size-3" />
+          Get your key from the <a href="#" className="text-primary hover:underline font-medium">OpenAI Dashboard</a>
+        </p>
       )}
     </div>
   );

@@ -1,51 +1,52 @@
 import React from 'react';
-
-const STEPS = [
-  { num: 1, label: 'Drop' },
-  { num: 2, label: 'Review' },
-  { num: 3, label: 'Perms' },
-  { num: 4, label: 'Validate' },
-  { num: 5, label: 'Submit' },
-];
+import { Check, Circle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface StepIndicatorProps {
   current: number;
 }
 
+const steps = [
+  { n: 1, label: 'Select' },
+  { n: 2, label: 'Review' },
+  { n: 3, label: 'Perms' },
+  { n: 4, label: 'Validate' },
+  { n: 5, label: 'Submit' },
+];
+
 export function StepIndicator({ current }: StepIndicatorProps): React.ReactElement {
   return (
-    <div className="flex items-center gap-2 mb-6">
-      {STEPS.map((step, i) => (
-        <React.Fragment key={step.num}>
-          {i > 0 && (
+    <div className="flex items-center justify-between w-full max-w-4xl mx-auto px-4">
+      {steps.map((s, i) => (
+        <React.Fragment key={s.n}>
+          <div className="flex flex-col items-center gap-3 relative group">
             <div
-              className={`flex-1 h-0.5 ${
-                step.num <= current ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'
-              }`}
-            />
-          )}
-          <div className="flex items-center gap-1.5">
-            <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${
-                step.num < current
-                  ? 'bg-blue-500 text-white'
-                  : step.num === current
-                    ? 'bg-blue-500 text-white ring-2 ring-blue-200 dark:ring-blue-800'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-              }`}
+              className={cn(
+                "size-10 rounded-full flex items-center justify-center transition-all duration-500 font-bold text-sm shadow-md",
+                current === s.n 
+                  ? "bg-primary text-primary-foreground ring-4 ring-primary/20 scale-110" 
+                  : current > s.n 
+                    ? "bg-emerald-500 text-white" 
+                    : "bg-muted text-muted-foreground border border-border"
+              )}
             >
-              {step.num < current ? '✓' : step.num}
+              {current > s.n ? <Check className="size-5" /> : s.n}
             </div>
-            <span
-              className={`text-xs font-medium hidden sm:inline ${
-                step.num === current
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400'
-              }`}
-            >
-              {step.label}
+            <span className={cn(
+              "text-[11px] font-bold uppercase tracking-widest transition-colors duration-300",
+              current === s.n ? "text-primary" : "text-muted-foreground"
+            )}>
+              {s.label}
             </span>
           </div>
+          {i < steps.length - 1 && (
+            <div className="flex-1 h-[2px] mx-4 -mt-8 bg-muted overflow-hidden">
+              <div 
+                className="h-full bg-emerald-500 transition-all duration-700 ease-in-out" 
+                style={{ width: current > s.n ? '100%' : '0%' }}
+              />
+            </div>
+          )}
         </React.Fragment>
       ))}
     </div>

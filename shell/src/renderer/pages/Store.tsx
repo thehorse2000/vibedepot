@@ -1,102 +1,62 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import Fuse from 'fuse.js';
 import { useAppStore } from '../store/useAppStore';
-import { APP_CATEGORIES } from '@vibedepot/shared';
-import type { RegistryEntry } from '@vibedepot/shared';
 import { StoreAppCard } from '../components/StoreAppCard';
 import { AppDetailModal } from '../components/AppDetailModal';
 import { FeaturedCarousel } from '../components/FeaturedCarousel';
-
-const ALL_CATEGORIES = 'all';
-const ALL_PROVIDERS = 'all';
-const PROVIDER_OPTIONS = [
-  { value: 'all', label: 'All Providers' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'gemini', label: 'Gemini' },
-];
+import type { RegistryEntry } from '@vibedepot/shared';
+import { Input } from '@/components/ui/input';
+import { Search, Loader2, Sparkles, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 export function Store(): React.ReactElement {
-  const registryEntries = useAppStore((s) => s.registryEntries);
-  const registryLoading = useAppStore((s) => s.registryLoading);
-  const registryError = useAppStore((s) => s.registryError);
-  const setRegistryEntries = useAppStore((s) => s.setRegistryEntries);
-  const setRegistryLoading = useAppStore((s) => s.setRegistryLoading);
-  const setRegistryError = useAppStore((s) => s.setRegistryError);
-  const installedApps = useAppStore((s) => s.installedApps);
-  const setInstalledApps = useAppStore((s) => s.setInstalledApps);
-  const installingAppIds = useAppStore((s) => s.installingAppIds);
-  const setAppInstalling = useAppStore((s) => s.setAppInstalling);
-
+  const [registry, setRegistry] = useState<RegistryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState(ALL_CATEGORIES);
-  const [provider, setProvider] = useState(ALL_PROVIDERS);
   const [selectedApp, setSelectedApp] = useState<RegistryEntry | null>(null);
+  const [installingId, setInstallingId] = useState<string | null>(null);
+  const [category, setCategory] = useState<string | null>(null);
 
-  const installedIds = useMemo(
-    () => new Set(installedApps.map((a) => a.id)),
-    [installedApps]
-  );
+  const installedApps = useAppStore((s) => s.installedApps);
+  const addInstalledApp = useAppStore((s) => s.addInstalledApp);
 
-  // Fetch registry on mount
   useEffect(() => {
-    if (registryEntries.length > 0) return; // already loaded
-    setRegistryLoading(true);
-    setRegistryError(null);
-    window.shellAPI.store
-      .fetchRegistry()
-      .then((entries) => {
-        setRegistryEntries(entries);
+    window.shellAPI.store.fetchRegistry()
+      .then((data) => {
+        setRegistry(data);
+        setLoading(false);
       })
       .catch((err) => {
-        setRegistryError(err?.message || 'Failed to load registry');
-      })
-      .finally(() => {
-        setRegistryLoading(false);
+        console.error('Failed to fetch registry:', err);
+        setLoading(false);
       });
   }, []);
 
-  // Fuse.js instance for fuzzy search
-  const fuse = useMemo(
-    () =>
-      new Fuse(registryEntries, {
-        keys: [
-          { name: 'name', weight: 3 },
-          { name: 'keywords', weight: 2 },
-          { name: 'description', weight: 1.5 },
-          { name: 'author', weight: 1 },
-          { name: 'longDescription', weight: 0.5 },
-        ],
-        threshold: 0.4,
-        includeScore: true,
-      }),
-    [registryEntries]
-  );
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    registry.forEach((entry) => {
+      if (entry.category) cats.add(entry.category);
+    });
+    return Array.from(cats);
+  }, [registry]);
 
-  // Filter entries
-  const filtered = useMemo(() => {
-    let entries = search
-      ? fuse.search(search).map((result) => result.item)
-      : registryEntries;
+  const filteredRegistry = useMemo(() => {
+    return registry.filter((entry) => {
+      const matchesSearch =
+        entry.name.toLowerCase().includes(search.toLowerCase()) ||
+        entry.description.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = !category || entry.category === category;
+      return matchesSearch && matchesCategory;
+    });
+  }, [registry, search, category]);
 
-    if (category !== ALL_CATEGORIES) {
-      entries = entries.filter((e) => e.category === category);
-    }
-
-    if (provider !== ALL_PROVIDERS) {
-      entries = entries.filter((e) => e.providers?.includes(provider as any));
-    }
-
-    return entries;
-  }, [registryEntries, search, category, provider, fuse]);
-
-  const featuredApps = useMemo(
-    () => registryEntries.filter((e) => e.featured),
-    [registryEntries]
-  );
+  const featuredApps = useMemo(() => {
+    return registry.filter((entry) => entry.featured).slice(0, 5);
+  }, [registry]);
 
   const handleInstall = async (entry: RegistryEntry): Promise<void> => {
-    setAppInstalling(entry.id, true);
+    setInstallingId(entry.id);
     try {
       const manifest = await window.shellAPI.store.installApp(
         entry.id,
@@ -104,144 +64,139 @@ export function Store(): React.ReactElement {
         entry.checksum,
         entry.version
       );
-      // Refresh installed apps list
-      const apps = await window.shellAPI.apps.list();
-      setInstalledApps(apps);
+      addInstalledApp(manifest);
     } catch (err) {
-      console.error('Install failed:', err);
-      alert(`Failed to install ${entry.name}: ${(err as Error).message}`);
+      console.error('Installation failed:', err);
+      alert(`Installation failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
-      setAppInstalling(entry.id, false);
+      setInstallingId(null);
     }
   };
 
-  const handleRefresh = (): void => {
-    setRegistryLoading(true);
-    setRegistryError(null);
-    window.shellAPI.store
-      .fetchRegistry()
-      .then(setRegistryEntries)
-      .catch((err) => setRegistryError(err?.message || 'Failed to refresh'))
-      .finally(() => setRegistryLoading(false));
-  };
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground animate-pulse font-medium">Fetching the vibe...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">Store</h2>
-        <button
-          onClick={handleRefresh}
-          disabled={registryLoading}
-          className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md transition-colors disabled:opacity-50"
-        >
-          {registryLoading ? 'Loading...' : 'Refresh'}
-        </button>
-      </div>
+    <div className="flex flex-col gap-8 pb-12 animate-in fade-in duration-700">
+      {/* Header & Featured */}
+      <section className="bg-primary/5 border-b border-border py-12 px-8 overflow-hidden relative">
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 size-80 bg-primary/10 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 size-60 bg-primary/5 rounded-full blur-[80px]" />
+        
+        <div className="max-w-6xl mx-auto flex flex-col gap-10">
+          <div className="flex flex-col gap-3 relative z-10">
+            <Badge variant="outline" className="w-fit bg-primary/10 text-primary border-primary/20 flex gap-1.5 py-1 px-3">
+              <Sparkles className="size-3.5 fill-primary" />
+              Discover the best AI Apps
+            </Badge>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-foreground leading-tight">
+              AI App Marketplace
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl font-medium leading-relaxed">
+              Explore and install curated AI applications to supercharge your workflow. 
+              VibeDepot connects your models to powerful, specialized tools.
+            </p>
+          </div>
 
-      {/* Featured carousel (visible when not searching) */}
-      {!search && featuredApps.length > 0 && (
-        <FeaturedCarousel
-          entries={featuredApps}
-          installedIds={installedIds}
-          installingAppIds={installingAppIds}
-          onInstall={handleInstall}
-          onAppClick={setSelectedApp}
-        />
-      )}
-
-      {/* Search and filters */}
-      <div className="flex gap-3 mb-5">
-        <input
-          type="text"
-          placeholder="Search apps..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value={ALL_CATEGORIES}>All Categories</option>
-          {APP_CATEGORIES.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat.charAt(0).toUpperCase() + cat.slice(1)}
-            </option>
-          ))}
-        </select>
-        <select
-          value={provider}
-          onChange={(e) => setProvider(e.target.value)}
-          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {PROVIDER_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Error state */}
-      {registryError && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
-          <p className="text-red-600 dark:text-red-400 text-sm">
-            {registryError}
-          </p>
-          <button
-            onClick={handleRefresh}
-            className="mt-2 text-sm text-red-600 dark:text-red-400 underline"
-          >
-            Try again
-          </button>
+          {featuredApps.length > 0 && (
+            <div className="relative z-10">
+              <FeaturedCarousel
+                apps={featuredApps}
+                onSelect={setSelectedApp}
+              />
+            </div>
+          )}
         </div>
-      )}
+      </section>
 
-      {/* Loading state */}
-      {registryLoading && registryEntries.length === 0 && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">
-            Loading registry...
-          </p>
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-8 w-full flex flex-col gap-8">
+        {/* Toolbar */}
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full md:max-w-md group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Input
+              type="text"
+              placeholder="Search apps by name or description..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 h-11 border-border bg-card shadow-sm group-hover:border-primary/50 transition-all focus-visible:ring-primary/20"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 w-full md:w-auto">
+            <Button
+              variant={!category ? "default" : "outline"}
+              size="sm"
+              onClick={() => setCategory(null)}
+              className="h-9 px-4 font-semibold shadow-sm"
+            >
+              All Apps
+            </Button>
+            {categories.map((cat) => (
+              <Button
+                key={cat}
+                variant={category === cat ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCategory(cat)}
+                className="h-9 px-4 font-semibold shadow-sm whitespace-nowrap"
+              >
+                {cat}
+              </Button>
+            ))}
+          </div>
         </div>
-      )}
 
-      {/* Empty state */}
-      {!registryLoading && !registryError && filtered.length === 0 && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">
-            {registryEntries.length === 0
-              ? 'No apps available in the registry yet.'
-              : 'No apps match your search.'}
-          </p>
-        </div>
-      )}
+        <Separator className="opacity-50" />
 
-      {/* App grid */}
-      {filtered.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((entry) => (
+        {/* Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRegistry.map((entry) => (
             <StoreAppCard
               key={entry.id}
               entry={entry}
-              isInstalled={installedIds.has(entry.id)}
-              isInstalling={installingAppIds.has(entry.id)}
+              isInstalled={installedApps.some((a) => a.id === entry.id)}
+              isInstalling={installingId === entry.id}
               onInstall={() => handleInstall(entry)}
               onClick={() => setSelectedApp(entry)}
             />
           ))}
+          {filteredRegistry.length === 0 && (
+            <div className="col-span-full py-20 flex flex-col items-center justify-center text-center bg-muted/30 rounded-3xl border border-dashed border-border">
+              <div className="size-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Search className="size-8 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-xl font-bold">No apps found</h3>
+              <p className="text-muted-foreground mt-2 max-w-xs">
+                We couldn't find any apps matching your current search or category. Try something else!
+              </p>
+              <Button 
+                variant="outline" 
+                className="mt-6"
+                onClick={() => { setSearch(''); setCategory(null); }}
+              >
+                Clear all filters
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Detail modal */}
       {selectedApp && (
         <AppDetailModal
           entry={selectedApp}
-          isInstalled={installedIds.has(selectedApp.id)}
-          isInstalling={installingAppIds.has(selectedApp.id)}
-          onInstall={() => handleInstall(selectedApp)}
+          isInstalled={installedApps.some((a) => a.id === selectedApp.id)}
+          isInstalling={installingId === selectedApp.id}
           onClose={() => setSelectedApp(null)}
+          onInstall={() => handleInstall(selectedApp)}
         />
       )}
     </div>

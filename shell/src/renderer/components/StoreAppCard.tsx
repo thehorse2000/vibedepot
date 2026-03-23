@@ -1,5 +1,9 @@
 import React from 'react';
 import type { RegistryEntry } from '@vibedepot/shared';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Download, CheckCircle2, Loader2, User } from 'lucide-react';
 
 interface StoreAppCardProps {
   entry: RegistryEntry;
@@ -17,79 +21,98 @@ export function StoreAppCard({
   onClick,
 }: StoreAppCardProps): React.ReactElement {
   return (
-    <div
-      className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+    <Card
+      className="group overflow-hidden border border-border bg-card hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full"
       onClick={onClick}
     >
-      {/* Thumbnail */}
-      {entry.thumbnail ? (
-        <div className="h-36 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+      <div className="relative aspect-video overflow-hidden bg-muted">
+        {entry.thumbnail ? (
           <img
             src={entry.thumbnail}
             alt={entry.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
-        </div>
-      ) : (
-        <div className="h-36 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center">
-          <span className="text-4xl opacity-50">
-            {entry.name.charAt(0).toUpperCase()}
-          </span>
-        </div>
-      )}
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20">
+            <span className="text-4xl font-bold opacity-20">
+              {entry.name.charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
+        {entry.category && (
+          <Badge className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm text-foreground border-none text-[10px] px-2 py-0">
+            {entry.category}
+          </Badge>
+        )}
+      </div>
 
-      <div className="p-4">
+      <CardHeader className="p-4 pb-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-sm truncate">{entry.name}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {entry.author}
-            </p>
+            <h3 className="font-bold text-base leading-none truncate group-hover:text-primary transition-colors">
+              {entry.name}
+            </h3>
+            <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
+              <User className="size-3" />
+              <span className="truncate">{entry.author}</span>
+            </div>
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!isInstalled && !isInstalling) onInstall();
-            }}
-            disabled={isInstalled || isInstalling}
-            className={`flex-shrink-0 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-              isInstalled
-                ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-default'
-                : isInstalling
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 cursor-wait'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
-          >
-            {isInstalled ? 'Installed' : isInstalling ? 'Installing...' : 'Install'}
-          </button>
         </div>
+      </CardHeader>
 
-        <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 line-clamp-2">
+      <CardContent className="p-4 py-2 flex-1">
+        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
           {entry.description}
         </p>
-
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {entry.category && (
-            <span className="text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
-              {entry.category}
-            </span>
-          )}
-          <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded">
+        <div className="flex flex-wrap gap-1 mt-3">
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
             v{entry.version}
-          </span>
-          {entry.providers?.map((p) => (
-            <span
-              key={p}
-              className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded"
-            >
+          </Badge>
+          {entry.providers?.slice(0, 2).map((p) => (
+            <Badge key={p} variant="outline" className="text-[10px] px-1.5 py-0 h-4">
               {p}
-            </span>
+            </Badge>
           ))}
+          {(entry.providers?.length ?? 0) > 2 && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+              +{(entry.providers?.length ?? 0) - 2}
+            </Badge>
+          )}
         </div>
-      </div>
-    </div>
+      </CardContent>
+
+      <CardFooter className="p-4 pt-0">
+        <Button
+          size="sm"
+          className="w-full font-semibold"
+          variant={isInstalled ? "secondary" : "default"}
+          disabled={isInstalled || isInstalling}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isInstalled && !isInstalling) onInstall();
+          }}
+        >
+          {isInstalled ? (
+            <>
+              <CheckCircle2 className="size-3 mr-1" />
+              Installed
+            </>
+          ) : isInstalling ? (
+            <>
+              <Loader2 className="size-3 mr-1 animate-spin" />
+              Installing...
+            </>
+          ) : (
+            <>
+              <Download className="size-3 mr-1" />
+              Install
+            </>
+          )}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

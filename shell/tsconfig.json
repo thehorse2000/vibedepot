@@ -5,6 +5,7 @@
     "outDir": "./out",
     "rootDir": "./src",
     "paths": {
+      "@/*": ["./src/renderer/*"],
       "@shared/*": ["../packages/shared/src/*"]
     }
   },
