@@ -6,9 +6,11 @@ interface AppCardProps {
   isRunning: boolean;
   hasUpdate?: boolean;
   registryVersion?: string;
+  sideloaded?: boolean;
   onLaunch: () => void;
   onClose: () => void;
   onUninstall?: () => void;
+  onRemove?: () => void;
 }
 
 export function AppCard({
@@ -16,9 +18,11 @@ export function AppCard({
   isRunning,
   hasUpdate,
   registryVersion,
+  sideloaded,
   onLaunch,
   onClose,
   onUninstall,
+  onRemove,
 }: AppCardProps): React.ReactElement {
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
@@ -26,6 +30,11 @@ export function AppCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-lg">{app.name}</h3>
+            {sideloaded && (
+              <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-1.5 py-0.5 rounded font-medium">
+                DEV
+              </span>
+            )}
             {hasUpdate && (
               <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
                 Update: v{registryVersion}
@@ -60,7 +69,15 @@ export function AppCard({
               Launch
             </button>
           )}
-          {onUninstall && !isRunning && (
+          {sideloaded && onRemove && !isRunning && (
+            <button
+              onClick={onRemove}
+              className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-md transition-colors"
+            >
+              Remove
+            </button>
+          )}
+          {!sideloaded && onUninstall && !isRunning && (
             <button
               onClick={onUninstall}
               className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-md transition-colors"

@@ -1,0 +1,15 @@
+{
+  "id": "file-processor-template",
+  "name": "File Processor",
+  "version": "1.0.0",
+  "description": "Drag-and-drop files for AI-powered processing — summarization, extraction, transformation",
+  "author": "VibeDepot",
+  "entry": "index.html",
+  "category": "files",
+  "permissions": ["ai", "storage.kv"],
+  "models": {
+    "required": true,
+    "providers": ["anthropic", "openai", "gemini"]
+  },
+  "keywords": ["file", "processor", "template", "drag-drop"]
+}

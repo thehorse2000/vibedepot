@@ -1,11 +1,16 @@
 import { BrowserWindow, nativeTheme } from 'electron';
 import { join } from 'path';
+import { watch, readFileSync } from 'fs';
+import type { FSWatcher } from 'fs';
 import type { AppManifest } from '@vibedepot/shared';
 import { getMainWindow } from './index';
+import { closeDb } from './appDatabase';
+import { isSideloaded, updateSideloadedManifest } from './appManager';
 
 interface RunningApp {
   window: BrowserWindow;
   manifest: AppManifest;
+  watcher?: FSWatcher;
 }
 
 const runningApps = new Map<string, RunningApp>();
@@ -19,6 +24,8 @@ export function launchApp(
     showApp(manifest.id);
     return;
   }
+
+  const sideloaded = isSideloaded(manifest.id);
 
   // Resolve the app-preload path
   let preloadPath: string;
@@ -43,23 +50,57 @@ export function launchApp(
       contextIsolation: true,
       sandbox: true,
       preload: preloadPath,
-      additionalArguments: [`--app-id=${manifest.id}`],
+      additionalArguments: [
+        `--app-id=${manifest.id}`,
+        ...(sideloaded ? ['--sideloaded'] : []),
+      ],
     },
   });
 
   const entryPath = join(appPath, manifest.entry);
   appWindow.loadFile(entryPath);
 
+  // File watcher for sideloaded apps — hot reload on save
+  let fileWatcher: FSWatcher | undefined;
+  if (sideloaded) {
+    let debounceTimer: NodeJS.Timeout | null = null;
+    fileWatcher = watch(appPath, { recursive: true }, (_eventType, filename) => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (appWindow.isDestroyed()) return;
+
+        // Re-read manifest if it changed
+        if (filename === 'manifest.json') {
+          updateSideloadedManifest(manifest.id);
+        }
+
+        // Reload the app window
+        appWindow.webContents.reloadIgnoringCache();
+
+        // Notify shell renderer that sideloaded app changed
+        const main = getMainWindow();
+        if (main && !main.isDestroyed()) {
+          main.webContents.send('sideload:changed', manifest.id);
+        }
+      }, 300);
+    });
+  }
+
   // Clean up and notify shell renderer when the app window closes
   appWindow.on('closed', () => {
+    const entry = runningApps.get(manifest.id);
+    if (entry?.watcher) {
+      entry.watcher.close();
+    }
     runningApps.delete(manifest.id);
+    closeDb(manifest.id);
     const main = getMainWindow();
     if (main && !main.isDestroyed()) {
       main.webContents.send('app:closed', manifest.id);
     }
   });
 
-  runningApps.set(manifest.id, { window: appWindow, manifest });
+  runningApps.set(manifest.id, { window: appWindow, manifest, watcher: fileWatcher });
 }
 
 export function closeApp(appId: string): void {
@@ -93,6 +134,14 @@ export function getAppIdFromWebContentsId(
     }
   }
   return null;
+}
+
+export function getWebContentsForApp(
+  appId: string
+): Electron.WebContents | null {
+  const running = runningApps.get(appId);
+  if (!running) return null;
+  return running.window.webContents;
 }
 
 export function getSystemTheme(): 'light' | 'dark' {

@@ -80,3 +80,53 @@ export const StoreUninstallSchema = z.object({
   appId: z.string(),
   deleteData: z.boolean().optional().default(false),
 });
+
+// Database (SQLite) schemas
+export const DbRunSchema = z.object({
+  sql: z.string().min(1),
+  params: z.array(z.unknown()).optional(),
+});
+
+export const DbQuerySchema = z.object({
+  sql: z.string().min(1),
+  params: z.array(z.unknown()).optional(),
+});
+
+export const DbTransactionSchema = z.object({
+  statements: z.array(
+    z.object({
+      sql: z.string().min(1),
+      params: z.array(z.unknown()).optional(),
+    })
+  ),
+});
+
+// Sideloading schemas
+export const SideloadAppSchema = z.object({
+  folderPath: z.string().min(1),
+});
+
+export const UnsideloadAppSchema = z.object({
+  appId: z.string().min(1),
+});
+
+// Publish wizard schemas
+export const PublishReadFolderSchema = z.object({
+  folderPath: z.string().min(1),
+});
+
+export const PublishValidateSchema = z.object({
+  folderPath: z.string().min(1),
+  manifest: z.record(z.unknown()),
+});
+
+export const PublishCreateBundleSchema = z.object({
+  folderPath: z.string().min(1),
+  manifest: z.record(z.unknown()),
+});
+
+export const PublishOpenPRSchema = z.object({
+  manifest: z.record(z.unknown()),
+  checksum: z.string().min(1),
+});
+

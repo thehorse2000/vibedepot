@@ -40,4 +40,25 @@ export const IPC = {
   STORE_FETCH_REGISTRY: 'store:fetchRegistry',
   STORE_INSTALL_APP: 'store:installApp',
   STORE_UNINSTALL_APP: 'store:uninstallApp',
+
+  // Database (SQLite)
+  DB_RUN: 'db:run',
+  DB_QUERY: 'db:query',
+  DB_TRANSACTION: 'db:transaction',
+
+  // Dev warnings (main -> app webContents)
+  DEV_WARNING: 'dev:warning',
+
+  // Sideloading
+  STORE_SIDELOAD_APP: 'store:sideload-app',
+  STORE_UNSIDELOAD_APP: 'store:unsideload-app',
+  SHELL_SELECT_FOLDER: 'shell:select-folder',
+  SIDELOAD_CHANGED: 'sideload:changed',
+
+  // Publish wizard
+  PUBLISH_SELECT_FOLDER: 'publish:select-folder',
+  PUBLISH_READ_FOLDER: 'publish:read-folder',
+  PUBLISH_VALIDATE: 'publish:validate',
+  PUBLISH_CREATE_BUNDLE: 'publish:create-bundle',
+  PUBLISH_OPEN_PR: 'publish:open-pr',
 } as const;

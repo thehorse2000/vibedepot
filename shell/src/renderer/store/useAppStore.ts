@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { AppManifest, RegistryEntry } from '@vibedepot/shared';
 
-type Page = 'store' | 'library' | 'settings';
+type Page = 'store' | 'library' | 'settings' | 'publish';
 
 interface AppStoreState {
   activePage: Page;

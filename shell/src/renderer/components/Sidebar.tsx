@@ -1,17 +1,25 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 
-type Page = 'store' | 'library' | 'settings';
+type Page = 'store' | 'library' | 'settings' | 'publish';
 
-const navItems: { id: Page; label: string; icon: string }[] = [
+const allNavItems: { id: Page; label: string; icon: string; publisherOnly?: boolean }[] = [
   { id: 'store', label: 'Store', icon: '🏪' },
   { id: 'library', label: 'Library', icon: '📚' },
+  { id: 'publish', label: 'Publish', icon: '🚀', publisherOnly: true },
   { id: 'settings', label: 'Settings', icon: '⚙️' },
 ];
 
 export function Sidebar(): React.ReactElement {
   const activePage = useAppStore((s) => s.activePage);
   const setActivePage = useAppStore((s) => s.setActivePage);
+  const publisherMode = useSettingsStore((s) => s.publisherMode);
+
+  const navItems = useMemo(
+    () => allNavItems.filter((item) => !item.publisherOnly || publisherMode),
+    [publisherMode]
+  );
 
   return (
     <aside className="w-60 bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">

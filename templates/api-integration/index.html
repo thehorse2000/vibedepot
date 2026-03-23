@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Integration</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+    .subtitle { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; }
+
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 12px; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-weight: 600; font-size: 0.8125rem; margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      font-family: inherit;
+      background: white;
+    }
+    .form-group textarea { height: 60px; resize: vertical; }
+
+    .row { display: flex; gap: 12px; }
+    .row > .form-group { flex: 1; }
+
+    .btn {
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-right: 8px;
+    }
+    .btn:hover { background: #4f46e5; }
+    .btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+    .btn-secondary { background: #64748b; }
+    .btn-secondary:hover { background: #475569; }
+
+    .response-section { margin-top: 16px; }
+    .response-section h3 { font-size: 0.8125rem; font-weight: 600; margin-bottom: 6px; color: #64748b; }
+    .response-raw {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 14px;
+      border-radius: 8px;
+      font-family: 'Menlo', 'Monaco', monospace;
+      font-size: 0.75rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .ai-analysis {
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .loading { color: #6366f1; font-style: italic; font-size: 0.8125rem; }
+    .error { color: #ef4444; font-size: 0.8125rem; }
+
+    .saved-configs { margin-top: 12px; }
+    .config-tag {
+      display: inline-block;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      margin: 2px 4px 2px 0;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .config-tag:hover { background: #e2e8f0; }
+  </style>
+</head>
+<body>
+  <h1>API Integration</h1>
+  <p class="subtitle">Fetch data from any API and analyze it with AI</p>
+
+  <div class="card">
+    <h2>API Configuration</h2>
+    <div class="row">
+      <div class="form-group">
+        <label>Method</label>
+        <select id="method">
+          <option>GET</option>
+          <option>POST</option>
+          <option>PUT</option>
+          <option>DELETE</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:3">
+        <label>URL</label>
+        <input type="text" id="url" placeholder="https://api.example.com/data">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Headers (JSON)</label>
+      <textarea id="headers" placeholder='{"Content-Type": "application/json"}'></textarea>
+    </div>
+    <div class="form-group" id="bodyGroup">
+      <label>Request Body (JSON)</label>
+      <textarea id="body" placeholder='{"key": "value"}'></textarea>
+    </div>
+    <div class="form-group">
+      <label>AI Analysis Prompt</label>
+      <input type="text" id="analysisPrompt" value="Analyze this API response and summarize the key data points:" placeholder="What should the AI do with the response?">
+    </div>
+    <div>
+      <button class="btn" id="fetchBtn">Fetch & Analyze</button>
+      <button class="btn btn-secondary" id="saveBtn">Save Config</button>
+    </div>
+    <div class="saved-configs" id="savedConfigs"></div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <h2>Results</h2>
+    <div class="response-section">
+      <h3>Raw Response</h3>
+      <div class="response-raw" id="rawResponse"></div>
+    </div>
+    <div class="response-section" style="margin-top:16px">
+      <h3>AI Analysis</h3>
+      <div class="ai-analysis" id="aiAnalysis"></div>
+    </div>
+  </div>
+
+  <script>
+    const methodEl = document.getElementById('method');
+    const urlEl = document.getElementById('url');
+    const headersEl = document.getElementById('headers');
+    const bodyEl = document.getElementById('body');
+    const analysisPromptEl = document.getElementById('analysisPrompt');
+    const fetchBtn = document.getElementById('fetchBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const resultCard = document.getElementById('resultCard');
+    const rawResponse = document.getElementById('rawResponse');
+    const aiAnalysis = document.getElementById('aiAnalysis');
+    const savedConfigsEl = document.getElementById('savedConfigs');
+
+    // Load saved configs
+    async function loadConfigs() {
+      const configs = await window.vibeDepot.storage.get('savedConfigs') || [];
+      savedConfigsEl.innerHTML = '';
+      configs.forEach((config, i) => {
+        const tag = document.createElement('span');
+        tag.className = 'config-tag';
+        tag.textContent = config.name;
+        tag.addEventListener('click', () => {
+          methodEl.value = config.method;
+          urlEl.value = config.url;
+          headersEl.value = config.headers;
+          bodyEl.value = config.body;
+          analysisPromptEl.value = config.prompt;
+        });
+        savedConfigsEl.appendChild(tag);
+      });
+    }
+    loadConfigs();
+
+    // Save config
+    saveBtn.addEventListener('click', async () => {
+      const name = prompt('Config name:');
+      if (!name) return;
+      const configs = await window.vibeDepot.storage.get('savedConfigs') || [];
+      configs.push({
+        name,
+        method: methodEl.value,
+        url: urlEl.value,
+        headers: headersEl.value,
+        body: bodyEl.value,
+        prompt: analysisPromptEl.value,
+      });
+      await window.vibeDepot.storage.set('savedConfigs', configs);
+      loadConfigs();
+    });
+
+    // Fetch and analyze
+    fetchBtn.addEventListener('click', async () => {
+      const url = urlEl.value.trim();
+      if (!url) return;
+
+      fetchBtn.disabled = true;
+      resultCard.style.display = 'block';
+      rawResponse.textContent = 'Fetching...';
+      aiAnalysis.innerHTML = '<span class="loading">Waiting for API response...</span>';
+
+      try {
+        // Parse headers
+        let headers = {};
+        try {
+          if (headersEl.value.trim()) headers = JSON.parse(headersEl.value);
+        } catch { /* ignore parse errors */ }
+
+        // Build fetch options
+        const options = { method: methodEl.value, headers };
+        if (['POST', 'PUT'].includes(methodEl.value) && bodyEl.value.trim()) {
+          options.body = bodyEl.value;
+        }
+
+        // Make the API call
+        const response = await fetch(url, options);
+        const text = await response.text();
+
+        // Try to pretty-print JSON
+        let displayText = text;
+        try {
+          displayText = JSON.stringify(JSON.parse(text), null, 2);
+        } catch { /* not JSON, show raw */ }
+
+        rawResponse.textContent = `Status: ${response.status} ${response.statusText}\n\n${displayText}`;
+
+        // AI analysis
+        aiAnalysis.innerHTML = '<span class="loading">Analyzing with AI...</span>';
+        const aiResponse = await window.vibeDepot.ai.callAI({
+          messages: [
+            {
+              role: 'user',
+              content: `${analysisPromptEl.value}\n\nAPI Response (${response.status}):\n${text.slice(0, 8000)}`
+            }
+          ],
+          maxTokens: 1024,
+        });
+        aiAnalysis.textContent = aiResponse.content;
+
+      } catch (err) {
+        rawResponse.textContent = 'Error: ' + err.message;
+        aiAnalysis.innerHTML = '<span class="error">Could not analyze — API call failed</span>';
+      } finally {
+        fetchBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

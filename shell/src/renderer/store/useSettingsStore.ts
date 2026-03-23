@@ -10,6 +10,8 @@ interface SettingsStoreState {
   setProviderStatus: (provider: string, status: ProviderStatus) => void;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
+  publisherMode: boolean;
+  setPublisherMode: (enabled: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsStoreState>((set) => ({
@@ -24,4 +26,9 @@ export const useSettingsStore = create<SettingsStoreState>((set) => ({
     })),
   theme: 'light',
   setTheme: (theme) => set({ theme }),
+  publisherMode: localStorage.getItem('vibedepot:publisherMode') === 'true',
+  setPublisherMode: (enabled) => {
+    localStorage.setItem('vibedepot:publisherMode', String(enabled));
+    set({ publisherMode: enabled });
+  },
 }));

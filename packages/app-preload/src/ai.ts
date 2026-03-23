@@ -1,11 +1,12 @@
 import type { IpcRenderer } from 'electron';
 import { IPC } from '@vibedepot/shared';
 import type { CallAIParams, CallAIResponse } from '@vibedepot/shared';
+import { invokeWithDxErrors } from './errors';
 
 export function createAIBridge(ipc: IpcRenderer) {
   return {
     callAI(params: CallAIParams): Promise<CallAIResponse> {
-      return ipc.invoke(IPC.AI_CALL, params);
+      return invokeWithDxErrors(ipc, IPC.AI_CALL, params) as Promise<CallAIResponse>;
     },
 
     streamAI(
@@ -37,7 +38,7 @@ export function createAIBridge(ipc: IpcRenderer) {
         ipc.on(IPC.AI_STREAM_END, endHandler);
         ipc.on(IPC.AI_STREAM_ERROR, errorHandler);
 
-        ipc.invoke(IPC.AI_STREAM, params).catch((err: Error) => {
+        invokeWithDxErrors(ipc, IPC.AI_STREAM, params).catch((err: Error) => {
           cleanup();
           reject(err);
         });
@@ -45,15 +46,15 @@ export function createAIBridge(ipc: IpcRenderer) {
     },
 
     getProvider(): Promise<string> {
-      return ipc.invoke(IPC.AI_GET_PROVIDER);
+      return invokeWithDxErrors(ipc, IPC.AI_GET_PROVIDER) as Promise<string>;
     },
 
     getModel(): Promise<string> {
-      return ipc.invoke(IPC.AI_GET_MODEL);
+      return invokeWithDxErrors(ipc, IPC.AI_GET_MODEL) as Promise<string>;
     },
 
     listProviders(): Promise<string[]> {
-      return ipc.invoke(IPC.AI_LIST_PROVIDERS);
+      return invokeWithDxErrors(ipc, IPC.AI_LIST_PROVIDERS) as Promise<string[]>;
     },
   };
 }

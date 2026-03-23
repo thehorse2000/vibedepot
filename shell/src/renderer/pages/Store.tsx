@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import Fuse from 'fuse.js';
 import { useAppStore } from '../store/useAppStore';
 import { APP_CATEGORIES } from '@vibedepot/shared';
 import type { RegistryEntry } from '@vibedepot/shared';
 import { StoreAppCard } from '../components/StoreAppCard';
 import { AppDetailModal } from '../components/AppDetailModal';
+import { FeaturedCarousel } from '../components/FeaturedCarousel';
 
 const ALL_CATEGORIES = 'all';
 const ALL_PROVIDERS = 'all';
@@ -54,20 +56,28 @@ export function Store(): React.ReactElement {
       });
   }, []);
 
+  // Fuse.js instance for fuzzy search
+  const fuse = useMemo(
+    () =>
+      new Fuse(registryEntries, {
+        keys: [
+          { name: 'name', weight: 3 },
+          { name: 'keywords', weight: 2 },
+          { name: 'description', weight: 1.5 },
+          { name: 'author', weight: 1 },
+          { name: 'longDescription', weight: 0.5 },
+        ],
+        threshold: 0.4,
+        includeScore: true,
+      }),
+    [registryEntries]
+  );
+
   // Filter entries
   const filtered = useMemo(() => {
-    let entries = registryEntries;
-
-    if (search) {
-      const q = search.toLowerCase();
-      entries = entries.filter(
-        (e) =>
-          e.name.toLowerCase().includes(q) ||
-          e.description.toLowerCase().includes(q) ||
-          e.keywords?.some((k) => k.toLowerCase().includes(q)) ||
-          e.author.toLowerCase().includes(q)
-      );
-    }
+    let entries = search
+      ? fuse.search(search).map((result) => result.item)
+      : registryEntries;
 
     if (category !== ALL_CATEGORIES) {
       entries = entries.filter((e) => e.category === category);
@@ -78,7 +88,12 @@ export function Store(): React.ReactElement {
     }
 
     return entries;
-  }, [registryEntries, search, category, provider]);
+  }, [registryEntries, search, category, provider, fuse]);
+
+  const featuredApps = useMemo(
+    () => registryEntries.filter((e) => e.featured),
+    [registryEntries]
+  );
 
   const handleInstall = async (entry: RegistryEntry): Promise<void> => {
     setAppInstalling(entry.id, true);
@@ -122,6 +137,17 @@ export function Store(): React.ReactElement {
           {registryLoading ? 'Loading...' : 'Refresh'}
         </button>
       </div>
+
+      {/* Featured carousel (visible when not searching) */}
+      {!search && featuredApps.length > 0 && (
+        <FeaturedCarousel
+          entries={featuredApps}
+          installedIds={installedIds}
+          installingAppIds={installingAppIds}
+          onInstall={handleInstall}
+          onAppClick={setSelectedApp}
+        />
+      )}
 
       {/* Search and filters */}
       <div className="flex gap-3 mb-5">

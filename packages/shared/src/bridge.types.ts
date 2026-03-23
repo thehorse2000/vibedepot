@@ -27,6 +27,16 @@ export interface VibeDepotBridge {
     setTitle(title: string): Promise<void>;
     theme(): Promise<'light' | 'dark'>;
   };
+  db: {
+    run(
+      sql: string,
+      params?: unknown[]
+    ): Promise<{ changes: number; lastInsertRowid: number }>;
+    query(sql: string, params?: unknown[]): Promise<unknown[]>;
+    transaction(
+      statements: Array<{ sql: string; params?: unknown[] }>
+    ): Promise<void>;
+  };
 }
 
 declare global {

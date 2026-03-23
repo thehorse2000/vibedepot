@@ -16,6 +16,11 @@
     "node": ">=18.0.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["electron", "esbuild", "keytar"]
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "electron",
+      "esbuild",
+      "keytar"
+    ]
   }
 }

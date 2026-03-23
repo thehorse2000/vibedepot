@@ -10,6 +10,7 @@ import {
 import { join } from 'path';
 import { app, net } from 'electron';
 import type { AppManifest } from '@vibedepot/shared';
+import { closeDb } from './appDatabase';
 
 export interface InstalledApp {
   manifest: AppManifest;
@@ -68,15 +69,89 @@ export function loadInstalledApps(): void {
 
 
 export function getInstalledApps(): InstalledApp[] {
-  return Array.from(installedApps.values());
+  const installed = Array.from(installedApps.values());
+  const sideloaded = Array.from(sideloadedApps.values()).map((s) => ({
+    manifest: s.manifest,
+    localPath: s.folderPath,
+  }));
+  return [...installed, ...sideloaded];
 }
 
 export function getInstalledApp(appId: string): InstalledApp | undefined {
-  return installedApps.get(appId);
+  const installed = installedApps.get(appId);
+  if (installed) return installed;
+  // Fall back to sideloaded apps — critical for assertPermission
+  const sideloaded = sideloadedApps.get(appId);
+  if (sideloaded) {
+    return { manifest: sideloaded.manifest, localPath: sideloaded.folderPath };
+  }
+  return undefined;
 }
 
 export function isAppInstalled(appId: string): boolean {
   return installedApps.has(appId);
+}
+
+// --- Sideloaded apps ---
+
+export interface SideloadedApp {
+  manifest: AppManifest;
+  folderPath: string;
+}
+
+const sideloadedApps = new Map<string, SideloadedApp>();
+
+export function isSideloaded(appId: string): boolean {
+  return sideloadedApps.has(appId);
+}
+
+export function getSideloadedApp(appId: string): SideloadedApp | undefined {
+  return sideloadedApps.get(appId);
+}
+
+export function sideloadApp(folderPath: string): AppManifest {
+  const manifestPath = join(folderPath, 'manifest.json');
+  if (!existsSync(manifestPath)) {
+    throw new Error(
+      'No manifest.json found in the selected folder. Every VibeDepot app needs a manifest.json.'
+    );
+  }
+
+  const manifest: AppManifest = JSON.parse(
+    readFileSync(manifestPath, 'utf-8')
+  );
+
+  // Check entry file exists
+  const entryPath = join(folderPath, manifest.entry);
+  if (!existsSync(entryPath)) {
+    throw new Error(
+      `Entry file "${manifest.entry}" not found in the app folder. Check your manifest.json "entry" field.`
+    );
+  }
+
+  sideloadedApps.set(manifest.id, { manifest, folderPath });
+  console.log(`[AppManager] Sideloaded: ${manifest.name} from ${folderPath}`);
+  return manifest;
+}
+
+export function unsideloadApp(appId: string): void {
+  sideloadedApps.delete(appId);
+  closeDb(appId);
+  console.log(`[AppManager] Unsideloaded: ${appId}`);
+}
+
+export function updateSideloadedManifest(appId: string): AppManifest | null {
+  const entry = sideloadedApps.get(appId);
+  if (!entry) return null;
+  try {
+    const manifest: AppManifest = JSON.parse(
+      readFileSync(join(entry.folderPath, 'manifest.json'), 'utf-8')
+    );
+    entry.manifest = manifest;
+    return manifest;
+  } catch {
+    return null;
+  }
 }
 
 // Download a file using Electron's net module (works in main process)
@@ -181,6 +256,9 @@ export function uninstallApp(appId: string, deleteData: boolean): void {
   if (existsSync(appDir)) {
     rmSync(appDir, { recursive: true, force: true });
   }
+
+  // Close any open database connections before removing data
+  closeDb(appId);
 
   // Optionally remove app data
   if (deleteData) {

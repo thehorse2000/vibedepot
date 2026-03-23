@@ -18,4 +18,5 @@ export interface RegistryEntry {
   checksum: string;
   installs: number;
   updatedAt: string;
+  featured?: boolean;
 }

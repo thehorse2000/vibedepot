@@ -1,0 +1,15 @@
+{
+  "id": "api-integration-template",
+  "name": "API Integration",
+  "version": "1.0.0",
+  "description": "Connect to external APIs and use AI to process and analyze the responses",
+  "author": "VibeDepot",
+  "entry": "index.html",
+  "category": "integrations",
+  "permissions": ["ai", "storage.kv", "network"],
+  "models": {
+    "required": true,
+    "providers": ["anthropic", "openai", "gemini"]
+  },
+  "keywords": ["api", "integration", "template", "fetch", "network"]
+}

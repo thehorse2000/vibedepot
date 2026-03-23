@@ -1,10 +1,17 @@
 import { ipcMain } from 'electron';
 import { IPC, CallAISchema, StreamAISchema } from '@vibedepot/shared';
 import type { AIProviderName } from '@vibedepot/shared';
+import {
+  DxError,
+  missingApiKey,
+  invalidParams,
+  aiProviderError,
+} from '@vibedepot/shared';
+import { ZodError } from 'zod';
 import { getApiKey, listConfiguredProviders } from '../keychain';
 import { getProvider, getProviderDefaultModel } from '../providers';
 import { getInstalledApp } from '../appManager';
-import { getAppIdFromEvent, assertPermission } from './register';
+import { getAppIdFromEvent, assertPermission, wrapHandler } from './register';
 
 /**
  * Resolve which provider + key to use for an AI call.
@@ -69,66 +76,95 @@ async function resolveProvider(
     }
   }
 
-  // Build a helpful error message
-  const tried = candidates.length > 0 ? candidates.join(', ') : 'none';
-  throw new Error(
-    `No API key available. Tried providers: ${tried}. Please add a key in Settings.`
-  );
+  throw missingApiKey(candidates);
 }
 
 export function registerAIIPC(): void {
-  ipcMain.handle(IPC.AI_CALL, async (event, payload) => {
-    const appId = getAppIdFromEvent(event.sender);
-    assertPermission(appId, 'ai');
+  ipcMain.handle(
+    IPC.AI_CALL,
+    wrapHandler(async (_event: unknown, payload: unknown) => {
+      const event = _event as Electron.IpcMainInvokeEvent;
+      const appId = getAppIdFromEvent(event.sender);
+      assertPermission(appId, 'ai');
 
-    const params = CallAISchema.parse(payload);
-    const { providerName, apiKey } = await resolveProvider(
-      appId,
-      params.provider
-    );
+      let params;
+      try {
+        params = CallAISchema.parse(payload);
+      } catch (err) {
+        if (err instanceof ZodError) throw invalidParams(err);
+        throw err;
+      }
 
-    const provider = getProvider(providerName);
-    return provider.call(apiKey, {
-      messages: params.messages,
-      model: params.model,
-      maxTokens: params.maxTokens,
-      temperature: params.temperature,
-    });
-  });
+      const { providerName, apiKey } = await resolveProvider(
+        appId,
+        params.provider
+      );
 
-  ipcMain.handle(IPC.AI_STREAM, async (event, payload) => {
-    const appId = getAppIdFromEvent(event.sender);
-    assertPermission(appId, 'ai');
-
-    const params = StreamAISchema.parse(payload);
-    const { providerName, apiKey } = await resolveProvider(
-      appId,
-      params.provider
-    );
-
-    const provider = getProvider(providerName);
-
-    try {
-      await provider.stream(
-        apiKey,
-        {
+      const provider = getProvider(providerName);
+      try {
+        return await provider.call(apiKey, {
           messages: params.messages,
           model: params.model,
           maxTokens: params.maxTokens,
           temperature: params.temperature,
-        },
-        (chunk) => {
-          event.sender.send(IPC.AI_STREAM_CHUNK, chunk);
-        }
+        });
+      } catch (err) {
+        if (err instanceof DxError) throw err;
+        throw aiProviderError(
+          providerName,
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+      }
+    })
+  );
+
+  ipcMain.handle(
+    IPC.AI_STREAM,
+    wrapHandler(async (_event: unknown, payload: unknown) => {
+      const event = _event as Electron.IpcMainInvokeEvent;
+      const appId = getAppIdFromEvent(event.sender);
+      assertPermission(appId, 'ai');
+
+      let params;
+      try {
+        params = StreamAISchema.parse(payload);
+      } catch (err) {
+        if (err instanceof ZodError) throw invalidParams(err);
+        throw err;
+      }
+
+      const { providerName, apiKey } = await resolveProvider(
+        appId,
+        params.provider
       );
-      event.sender.send(IPC.AI_STREAM_END);
-    } catch (err) {
-      event.sender.send(
-        IPC.AI_STREAM_ERROR,
-        err instanceof Error ? err.message : 'Stream failed'
-      );
-    }
-  });
+
+      const provider = getProvider(providerName);
+
+      try {
+        await provider.stream(
+          apiKey,
+          {
+            messages: params.messages,
+            model: params.model,
+            maxTokens: params.maxTokens,
+            temperature: params.temperature,
+          },
+          (chunk) => {
+            event.sender.send(IPC.AI_STREAM_CHUNK, chunk);
+          }
+        );
+        event.sender.send(IPC.AI_STREAM_END);
+      } catch (err) {
+        const message =
+          err instanceof DxError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : 'Stream failed';
+        event.sender.send(IPC.AI_STREAM_ERROR, message);
+      }
+    })
+  );
 
   ipcMain.handle(IPC.AI_GET_PROVIDER, async (event) => {
     const appId = getAppIdFromEvent(event.sender);

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My App</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 16px; }
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    button {
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #4f46e5; }
+    #output {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f1f5f9;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      white-space: pre-wrap;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>My App</h1>
+
+  <div class="card">
+    <p>Your VibeDepot app is ready. Edit this file to build your app.</p>
+    <br>
+    <button id="demoBtn">Try AI</button>
+    <div id="output"></div>
+  </div>
+
+  <script>
+    // The Bridge API is available at window.vibeDepot:
+    //
+    // AI:
+    //   vibeDepot.ai.callAI({ messages: [{ role: 'user', content: '...' }] })
+    //   vibeDepot.ai.streamAI(params, onChunk)
+    //
+    // Storage:
+    //   vibeDepot.storage.set(key, value)
+    //   vibeDepot.storage.get(key)
+    //   vibeDepot.storage.delete(key)
+    //
+    // Shell:
+    //   vibeDepot.shell.theme()
+    //   vibeDepot.shell.notify(title, body)
+    //   vibeDepot.shell.openExternal(url)
+
+    document.getElementById('demoBtn').addEventListener('click', async () => {
+      const output = document.getElementById('output');
+      output.style.display = 'block';
+      output.textContent = 'Thinking...';
+      try {
+        const response = await window.vibeDepot.ai.callAI({
+          messages: [{ role: 'user', content: 'Say hello in a creative way!' }],
+          maxTokens: 256,
+        });
+        output.textContent = response.content;
+      } catch (err) {
+        output.textContent = 'Error: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

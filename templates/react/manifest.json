@@ -1,0 +1,15 @@
+{
+  "id": "react-template",
+  "name": "React App",
+  "version": "1.0.0",
+  "description": "React + Vite + Tailwind starter with AI integration and theme support",
+  "author": "VibeDepot",
+  "entry": "dist/index.html",
+  "category": "productivity",
+  "permissions": ["ai", "storage.kv"],
+  "models": {
+    "required": true,
+    "providers": ["anthropic", "openai", "gemini"]
+  },
+  "keywords": ["react", "vite", "tailwind", "template"]
+}

@@ -1,30 +1,31 @@
 import type { IpcRenderer } from 'electron';
 import { IPC } from '@vibedepot/shared';
+import { invokeWithDxErrors } from './errors';
 
 export function createShellBridge(ipc: IpcRenderer) {
   return {
     getAppInfo(): Promise<unknown> {
-      return ipc.invoke(IPC.SHELL_GET_APP_INFO);
+      return invokeWithDxErrors(ipc, IPC.SHELL_GET_APP_INFO);
     },
 
     getVersion(): Promise<string> {
-      return ipc.invoke(IPC.SHELL_GET_VERSION);
+      return invokeWithDxErrors(ipc, IPC.SHELL_GET_VERSION) as Promise<string>;
     },
 
     openExternal(url: string): Promise<void> {
-      return ipc.invoke(IPC.SHELL_OPEN_EXTERNAL, { url });
+      return invokeWithDxErrors(ipc, IPC.SHELL_OPEN_EXTERNAL, { url }) as Promise<void>;
     },
 
     notify(title: string, body: string): Promise<void> {
-      return ipc.invoke(IPC.SHELL_NOTIFY, { title, body });
+      return invokeWithDxErrors(ipc, IPC.SHELL_NOTIFY, { title, body }) as Promise<void>;
     },
 
     setTitle(title: string): Promise<void> {
-      return ipc.invoke(IPC.SHELL_SET_TITLE, { title });
+      return invokeWithDxErrors(ipc, IPC.SHELL_SET_TITLE, { title }) as Promise<void>;
     },
 
     theme(): Promise<'light' | 'dark'> {
-      return ipc.invoke(IPC.SHELL_THEME);
+      return invokeWithDxErrors(ipc, IPC.SHELL_THEME) as Promise<'light' | 'dark'>;
     },
   };
 }

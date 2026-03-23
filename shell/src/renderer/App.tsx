@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
+import { useSettingsStore } from './store/useSettingsStore';
 import { Sidebar } from './components/Sidebar';
 import { Store } from './pages/Store';
 import { Library } from './pages/Library';
 import { Settings } from './pages/Settings';
+import { Publish } from './pages/Publish';
 
 declare global {
   interface Window {
@@ -35,14 +37,55 @@ declare global {
         getVersion: () => Promise<string>;
         theme: () => Promise<'light' | 'dark'>;
       };
+      sideload: {
+        selectFolder: () => Promise<string | null>;
+        loadApp: (folderPath: string) => Promise<import('@vibedepot/shared').AppManifest>;
+        unloadApp: (appId: string) => Promise<void>;
+        onChanged: (callback: (appId: string) => void) => () => void;
+      };
+      publish: {
+        selectFolder: () => Promise<string | null>;
+        readFolder: (folderPath: string) => Promise<{
+          files: string[];
+          manifest: Record<string, unknown>;
+          manifestExists: boolean;
+        }>;
+        validate: (
+          folderPath: string,
+          manifest: Record<string, unknown>
+        ) => Promise<{
+          results: Array<{
+            check: string;
+            status: 'pass' | 'warn' | 'fail';
+            message: string;
+          }>;
+        }>;
+        createBundle: (
+          folderPath: string,
+          manifest: Record<string, unknown>
+        ) => Promise<{ zipPath: string; checksum: string }>;
+        openPR: (
+          manifest: Record<string, unknown>,
+          checksum: string
+        ) => Promise<{ prUrl: string }>;
+      };
     };
   }
 }
 
 export function App(): React.ReactElement {
   const activePage = useAppStore((s) => s.activePage);
+  const setActivePage = useAppStore((s) => s.setActivePage);
   const setInstalledApps = useAppStore((s) => s.setInstalledApps);
   const setAppRunning = useAppStore((s) => s.setAppRunning);
+  const publisherMode = useSettingsStore((s) => s.publisherMode);
+
+  // Redirect away from publish page if publisher mode is disabled
+  useEffect(() => {
+    if (activePage === 'publish' && !publisherMode) {
+      setActivePage('store');
+    }
+  }, [activePage, publisherMode, setActivePage]);
 
   useEffect(() => {
     window.shellAPI.apps.list().then(setInstalledApps).catch(console.error);
@@ -62,6 +105,7 @@ export function App(): React.ReactElement {
         {activePage === 'store' && <Store />}
         {activePage === 'library' && <Library />}
         {activePage === 'settings' && <Settings />}
+        {activePage === 'publish' && <Publish />}
       </main>
     </div>
   );

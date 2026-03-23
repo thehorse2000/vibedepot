@@ -49,6 +49,31 @@ const shellAPI = {
     getVersion: () => ipcRenderer.invoke(IPC.SHELL_GET_VERSION),
     theme: () => ipcRenderer.invoke(IPC.SHELL_THEME),
   },
+  sideload: {
+    selectFolder: () =>
+      ipcRenderer.invoke(IPC.SHELL_SELECT_FOLDER) as Promise<string | null>,
+    loadApp: (folderPath: string) =>
+      ipcRenderer.invoke(IPC.STORE_SIDELOAD_APP, { folderPath }),
+    unloadApp: (appId: string) =>
+      ipcRenderer.invoke(IPC.STORE_UNSIDELOAD_APP, { appId }),
+    onChanged: (callback: (appId: string) => void) => {
+      const handler = (_event: unknown, appId: string) => callback(appId);
+      ipcRenderer.on('sideload:changed', handler);
+      return () => ipcRenderer.removeListener('sideload:changed', handler);
+    },
+  },
+  publish: {
+    selectFolder: () =>
+      ipcRenderer.invoke(IPC.PUBLISH_SELECT_FOLDER) as Promise<string | null>,
+    readFolder: (folderPath: string) =>
+      ipcRenderer.invoke(IPC.PUBLISH_READ_FOLDER, { folderPath }),
+    validate: (folderPath: string, manifest: Record<string, unknown>) =>
+      ipcRenderer.invoke(IPC.PUBLISH_VALIDATE, { folderPath, manifest }),
+    createBundle: (folderPath: string, manifest: Record<string, unknown>) =>
+      ipcRenderer.invoke(IPC.PUBLISH_CREATE_BUNDLE, { folderPath, manifest }),
+    openPR: (manifest: Record<string, unknown>, checksum: string) =>
+      ipcRenderer.invoke(IPC.PUBLISH_OPEN_PR, { manifest, checksum }),
+  },
 };
 
 contextBridge.exposeInMainWorld('shellAPI', shellAPI);

@@ -6,7 +6,8 @@
       "Bash(pnpm dev:*)",
       "Bash(grep -E \"\\\\.\\(ts|tsx|json|js\\)$\")",
       "Bash(npm run:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(pnpm add:*)"
     ]
   }
 }
