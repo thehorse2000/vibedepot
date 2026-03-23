@@ -1,0 +1,24 @@
+{
+    "folders": [
+        {
+            "path": ".",
+            "name": "Root"
+        },
+        {
+            "path": "shell",
+            "name": "Shell"
+        },
+        {
+            "path": "registry",
+            "name": "Registry"
+        },
+        {
+            "path": "packages",
+            "name": "Packages"
+        },
+        {
+            "path": "docs",
+            "name": "Docs"
+        }
+    ]
+}

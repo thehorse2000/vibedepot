@@ -1,0 +1,44 @@
+---
+title: VibeDepot
+description: The open-source desktop app store for AI-native applications.
+template: splash
+hero:
+  tagline: The open-source desktop app store for AI-native applications. Browse, install, and run sandboxed AI apps — or build and publish your own.
+  actions:
+    - text: Get Started
+      link: /getting-started/introduction/
+      icon: right-arrow
+    - text: Build Your First App
+      link: /guides/building-your-first-app/
+      icon: rocket
+      variant: minimal
+    - text: View on GitHub
+      link: https://github.com/thehorse2000/vibedepot
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why VibeDepot?
+
+<CardGrid stagger>
+	<Card title="AI Providers Built In" icon="star">
+		First-class support for Anthropic, OpenAI, and Gemini. Apps call AI through a unified Bridge API — users bring their own API keys.
+	</Card>
+	<Card title="Sandboxed & Secure" icon="approve-check-circle">
+		Every app runs in an isolated Electron BrowserWindow with context isolation. Apps can only access what their permissions allow.
+	</Card>
+	<Card title="Permission System" icon="setting">
+		Apps declare the permissions they need. Auto-granted storage, consent-required AI, database, network, clipboard, and notifications.
+	</Card>
+	<Card title="Public Registry" icon="open-book">
+		A community-driven app catalog hosted on GitHub. Submit your app via PR, and it becomes available to every VibeDepot user.
+	</Card>
+	<Card title="Developer CLI" icon="laptop">
+		Scaffold, preview, validate, and publish apps from the command line. Templates for vanilla HTML, React, chat bots, and more.
+	</Card>
+	<Card title="Open Source" icon="github">
+		MIT licensed. Built with Electron, React, TypeScript, and Zustand. Contributions welcome.
+	</Card>
+</CardGrid>
